@@ -74,14 +74,7 @@ public class Parser {
 					try {
 						getStats(child, needLocal);
 
-//						List<HashMap<String, Integer[]>> c = new ArrayList<HashMap<String, Integer[]>>();
-//						c.add(menuMapFILE);
-//						c.add(eventMapFILE);
-//						userDB.put(logFileName, c); // accumulate a hashmap for each individual user statistics
-//
-//						// quick & dirty way to reset the FILE maps so they contain no previous file's stats
-//						eventMapFILE = new HashMap<String, Integer[]>();
-//						menuMapFILE = new HashMap<String, Integer[]>();
+
 
 					} catch (Exception e) {
 						e.printStackTrace();
