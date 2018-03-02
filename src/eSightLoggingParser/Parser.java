@@ -55,6 +55,17 @@ public class Parser {
 	// that contains individual user stats will be produced; if false, this file
 	// will not be produced
 	public Parser(String logFilesDir, boolean needLocalStats) {
+//		System.out.println("Working Directory = " + System.getProperty("user.dir"));
+		
+		// check that log file directory exists
+		File theDir = new File(logFilesDir);
+		if (!theDir.exists()) {
+			System.out.println("Cannot find folder containing log files. Ensure folder name is \"Log_Files\" and is located in current working directory");
+			System.out.println("Current working directory is: " + System.getProperty("user.dir"));
+			return;
+		}
+		
+		createDir("Parser_Output_Files");
 		System.out.println("Beginning Log Analysis...");
 		getLogStats(logFilesDir, needLocalStats);
 	}
@@ -92,7 +103,7 @@ public class Parser {
 				writerTXT.close();
 
 				// afterwards, sort the Folder hashmaps
-				System.out.println("Analysis complete. Getting files ready...");
+				System.out.println("Analysis complete. Building output files...");
 				eventMap_overallStats = (HashMap<String, Integer[]>) sortFrequency(eventMap_overallStats);
 				menuMap_overallStats = (HashMap<String, Integer[]>) sortFrequency(menuMap_overallStats);
 
@@ -106,6 +117,8 @@ public class Parser {
 				if (needLocal) {
 					S3Operations.uploadFile(outputDir, fileNameTXT + ".txt");
 				}
+				System.out.println("Upload & Analysis Complete!");
+
 			} else {
 				System.out.println("Error- specified directory appears to be empty");
 			}
@@ -258,7 +271,7 @@ public class Parser {
 		return c.getTimeInMillis();
 	}
 
-	// This method checks the provided key against the provided map, determining
+	// checks the provided key against the provided map, determining
 	// whether to put a new key/value set in the hashmap if
 	// the map contains that key, or change value[0] contained by that key,
 	// incremented it to indicate this particular key/menu has been
@@ -319,7 +332,6 @@ public class Parser {
 		for (Entry<String, Integer[]> entry : list) {
 			result.put(entry.getKey(), entry.getValue());
 		}
-
 		return result;
 	}
 
@@ -352,15 +364,13 @@ public class Parser {
 		for (Entry<String, Integer[]> entry : map.entrySet()) {
 			writer.append(entry.getKey()).append(',').append(entry.getValue()[0].toString()).append(',')
 					.append((String.format("%.2f", ((float) (entry.getValue()[1]) / 60.0f)))).append(',')
-					.append(String.format("%.2f", ((float) (entry.getValue()[1])) / ((float) entry.getValue()[0]))) // average
-																													// sec/menu
+					.append(String.format("%.2f", ((float) (entry.getValue()[1])) / ((float) entry.getValue()[0]))) // average sec/menu
 					.append(eol);
 		}
 		writer.append("\n");
 	}
 
 	public static void writeToTXT(Writer writer, String mapName, HashMap<String, Integer[]> map) throws IOException {
-
 		writer.append(mapName + "{");
 		for (Entry<String, Integer[]> entry : map.entrySet()) {
 			writer.append(entry.getKey()).append(" = ").append(entry.getValue()[0].toString()).append(", ");
@@ -382,11 +392,7 @@ public class Parser {
 	}
 
 	public static void main(String[] args) {
-		// new Parser();
-		System.out.println("Working Directory = " + System.getProperty("user.dir"));
-		createDir("Output_Files");
-
-		new Parser("C:\\Users\\Semi\\eSightLogFiles", true);
+		new Parser(System.getProperty("user.dir") + File.separator + "Log_Files", true);
 	}
 
 }

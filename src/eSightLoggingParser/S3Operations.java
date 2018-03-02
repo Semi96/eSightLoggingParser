@@ -18,11 +18,10 @@ public class S3Operations {
 			AmazonS3 s3Client = AmazonS3ClientBuilder.standard().withRegion(Regions.US_WEST_2).build();
 
 			File f = new File(dirName + File.separator + filename);
-			System.out.println("File being uploaded:  " + f.getName());
 
 			PutObjectRequest putRequest = new PutObjectRequest(bucketName, filename, f);
 			s3Client.putObject(putRequest);
-			System.out.println("Upload & Analysis Complete!");
+			System.out.println("Successfully uploaded file " + f.getName());
 
 		} catch (AmazonServiceException ase) {
 			System.out.println("Caught an AmazonServiceException, which " + "means your request made it "
