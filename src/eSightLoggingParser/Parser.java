@@ -56,6 +56,8 @@ public class Parser {
 	// will not be produced
 	public Parser(String logFilesDir, boolean needLocalStats) {
 //		System.out.println("Working Directory = " + System.getProperty("user.dir"));
+		S3Operations.downloadLogs();
+
 		
 		// check that log file directory exists
 		File theDir = new File(logFilesDir);
@@ -95,6 +97,8 @@ public class Parser {
 					// Begin Analysis of Each File in Folder
 					try {
 						getStats(child, needLocal);
+						// ensure we are not carrying-over stats across different logs (i.e. time-keeping across two events in different files)
+						resetLocalFlags();
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
@@ -117,6 +121,9 @@ public class Parser {
 				if (needLocal) {
 					S3Operations.uploadFile(outputDir, fileNameTXT + ".txt");
 				}
+				
+				removeDirectory(dir);
+				
 				System.out.println("Upload & Analysis Complete!");
 
 			} else {
@@ -126,13 +133,40 @@ public class Parser {
 			e.printStackTrace();
 		}
 	}
+	
+	public static void removeDirectory(File dir) {
+	    if (dir.isDirectory()) {
+	        File[] files = dir.listFiles();
+	        if (files != null && files.length > 0) {
+	            for (File aFile : files) {
+	                removeDirectory(aFile);
+	            }
+	        }
+	        dir.delete();
+	    } else {
+			dir.delete();
+			System.out.println("deleted log files folder & contents");
+	    }
+	}
+	
+	public static void resetLocalFlags() {
+		startTime = 0;
+		endTime = 0;
+		needEndTime = false;
+		recordTimeDiff = false;
+		timeDiff = 0;
+	}
 
 	public static void getStats(File logFile, boolean needLocal) {
 		try {
 			// name will be device's Serial Number
 			String logFileName = logFile.getName();
+			if (logFileName.contains(".")) {
 			logFileName = logFileName.substring(0, logFileName.lastIndexOf(".")); // name without the file extension
-																					// (i.e '.txt')
+																				// (i.e '.txt')
+			} else {
+				logFileName = logFile.getName();
+			}
 			parseText(readFile(logFile), needLocal, logFileName);
 		} catch (Exception e) {
 			System.out.println("Error reading log file with name: " + logFile.getName());
@@ -350,22 +384,31 @@ public class Parser {
 
 		fileNameCSV = "log_CSV_" + dateFileNameSafe;
 		Writer writerCSV = new FileWriter(outputDir + File.separator + fileNameCSV + ".csv");
-		writeToCSV(writerCSV, "Menu Name", "Frequency", menuMap_overallStats, menuCounter_overall);
-		writeToCSV(writerCSV, "Event Name", "Frequency", eventMap_overallStats, eventCounter_overall);
+		writeToCSV(writerCSV, "Menu Name", "Frequency", menuMap_overallStats, menuCounter_overall, true);
+		writeToCSV(writerCSV, "Event Name", "Frequency", eventMap_overallStats, eventCounter_overall, false);
 		writerCSV.close();
 	}
 
 	public static void writeToCSV(Writer writer, String col1Name, String col2Name, HashMap<String, Integer[]> map,
-			int occuranceCounter) throws IOException {
+			int occuranceCounter, boolean needTiming) throws IOException {
 		String eol = System.getProperty("line.separator");
 
+		if (needTiming) {
 		writer.append(col1Name + ',' + col2Name + ',' + "Total Time (min)" + ',' + "Average Time (sec)" + ',' + "\n");
+		} else {
+			writer.append(col1Name + ',' + col2Name + "\n");
+		}
+		
 		writer.append("Total: " + ',' + occuranceCounter + "\n");
 		for (Entry<String, Integer[]> entry : map.entrySet()) {
-			writer.append(entry.getKey()).append(',').append(entry.getValue()[0].toString()).append(',')
-					.append((String.format("%.2f", ((float) (entry.getValue()[1]) / 60.0f)))).append(',')
-					.append(String.format("%.2f", ((float) (entry.getValue()[1])) / ((float) entry.getValue()[0]))) // average sec/menu
-					.append(eol);
+			writer.append(entry.getKey()).append(',').append(entry.getValue()[0].toString()).append(',');
+			
+			if (needTiming) {
+				writer.append((String.format("%.2f", ((float) (entry.getValue()[1]) / 60.0f)))).append(',')
+				.append(String.format("%.2f", ((float) (entry.getValue()[1])) / ((float) entry.getValue()[0]))); // average sec/menu
+			}
+			
+			writer.append(eol);
 		}
 		writer.append("\n");
 	}
@@ -393,6 +436,7 @@ public class Parser {
 
 	public static void main(String[] args) {
 		new Parser(System.getProperty("user.dir") + File.separator + "Log_Files", true);
+//		S3Operations.downloadLogs();
 	}
 
 }

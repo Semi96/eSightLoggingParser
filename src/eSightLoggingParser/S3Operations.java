@@ -6,12 +6,40 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.transfer.MultipleFileDownload;
+import com.amazonaws.services.s3.transfer.TransferManager;
+import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import java.io.File;
 
 public class S3Operations {
 
 	private static String bucketName = "esight-log-analytics";
 
+	public static void downloadLogs() {
+
+		File f = new File(System.getProperty("user.dir") + File.separator + "Log_Files");
+		if (f.exists()) {
+			System.out.println("\"Log_Files\" directory already exists");
+		}
+		else {
+			System.out.println("downloading log files...");
+			TransferManager tm = TransferManagerBuilder.standard().build();
+
+			try {
+				MultipleFileDownload mfd = tm.downloadDirectory("esight-log-objects", "Log_Files", new File(System.getProperty("user.dir")));
+				while (!mfd.isDone()) {
+					// wait
+				}
+				System.out.println("download complete!");
+			} catch(AmazonServiceException e) {
+				e.getErrorMessage();
+				e.printStackTrace();
+			}
+			tm.shutdownNow();
+		}
+
+	}
+	
 	public static void uploadFile(String dirName, String filename) {
 
 		try {
