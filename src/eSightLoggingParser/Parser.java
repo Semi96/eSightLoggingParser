@@ -122,7 +122,7 @@ public class Parser {
 					S3Operations.uploadFile(outputDir, fileNameTXT + ".txt");
 				}
 				
-				removeDirectory(dir);
+//				removeDirectory(dir);
 				
 				System.out.println("Upload & Analysis Complete!");
 
@@ -252,10 +252,16 @@ public class Parser {
 				needEndTime = false;
 				timeDiff = (endTime - startTime) / 1000; // seconds
 				// arbitrary large value (one week) to catch condition where eSight time
-				// switches on wifi connection, causing big jump in system time
-				if (Math.abs(timeDiff) < 7 * 24 * 60 * 60) {
+				// switches on wifi connection, causing big jump in system time. Also catches condition where time may be negative,
+				// which we do not want.
+				if (timeDiff < 7 * 24 * 60 * 60 && timeDiff >= 0 && !key.equals("ON")) { // if the key code is "ON", this often results in an unwanted, large time jump that gives faulty data
 					// indicate that we do in fact want to record the time difference calculated
 					// above
+					
+					// CHANGE: timeDiff threshold dropped to 5 minutes to avoid idle menu enlarging time... this should eventually be changed at the logging level
+					if (timeDiff > 5*60) {
+						timeDiff = 300;
+					}
 					recordTimeDiff = true;
 				}
 			} catch (Exception e) {
